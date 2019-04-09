@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <title>Steam tags computes</title>
+    <title>Steam tags Query & Top</title>
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
@@ -90,6 +90,10 @@
         }
 
         function templateFillTags() {
+            if (jQuery.isEmptyObject(steamPages)) {
+                console.warn("templateFillTags empty object");
+            }
+
             var dataForTable = [];
             var id = 1;
             for (const href in steamPages) {
@@ -190,6 +194,10 @@
             $("#table-top-tags").bootstrapTable({
                 search: true,
                 pagination: true,
+
+                // Initial sorting order
+                sortName: "frequency",
+                sortOrder: "desc",
                 columns: [{
                     field: 'frequency',
                     title: 'Frequency',
@@ -286,6 +294,16 @@
             });
         }
 
+        function clear() {
+            $("#table-tags").bootstrapTable('destroy');
+            $("#table-top-tags").bootstrapTable('destroy');
+
+            steamPages = {};
+            steamTopTags = {};
+            steamTopTagsArray = [];
+            numPagesLoading = 0;
+        }
+
         function readyFn(jQuery) {
             var $steam_pages = $("#steam-pages");
 
@@ -293,6 +311,7 @@
             $steam_pages.val(getSteamLinksFromLocalStorage());
 
             $(document).on('click', '#btn-query-tags', function () {
+                clear();
                 var steamLinksRaw = $steam_pages.val().trim();
                 setSteamLinkInLocalStorage(steamLinksRaw);
 
