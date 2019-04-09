@@ -169,7 +169,6 @@
                 // Parse games
                 var games_present = "";
                 var gamesHrefsIndex = 0;
-                console.log(tagsData.games_hrefs.length);
                 tagsData.games_hrefs.forEach(function(gameHref) {
                     if (gameHref in steamPages) {
                         games_present += makeHtmlLink(gameHref, steamPages[gameHref].name);
