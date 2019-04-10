@@ -9,7 +9,7 @@
     <title>Steam tags Query & Top</title>
 
     <link rel="stylesheet" href="../css/bootstrap.min.css">
-    <link rel="stylesheet" href="../css/fontawesome-all.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
     <link rel="stylesheet" href="../css/bootstrap-table.min.css">
     <link rel="stylesheet" href="common.css">
     <link rel="stylesheet" href="tags.css">
@@ -41,6 +41,7 @@
 
         <div class="container" id="tags-root">
             <h3>Tags</h3>
+            <span class="badge badge-info">The first 15 tags are highlighted in green. Because they are the relevant ones.</span> <a href="https://partner.steamgames.com/doc/store/tags#5" target="_blank">(See steam docs)</a>
             <table id="table-tags"></table>
         </div>
 
@@ -48,6 +49,14 @@
 
         <div class="container" id="top-tags-root">
             <h3>Top Tags</h3>
+            <form class="form-inline" onsubmit="event.preventDefault();">
+                <div class="form-check mb-2 mr-sm-2">
+                    <input class="form-check-input" type="checkbox" id="checkboxIncludeOnlyTopTags" checked>
+                    <label class="form-check-label" for="checkboxIncludeOnlyTopTags">
+                      Count only top 15 tags in frequency
+                    </label>
+                  </div>
+            </form>
             <table id="table-top-tags"></table>
         </div>
 

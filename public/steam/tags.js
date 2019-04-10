@@ -1,3 +1,18 @@
+"use strict";
+
+// First, checks if it isn't implemented yet.
+if (!String.prototype.format) {
+    String.prototype.format = function () {
+        var args = arguments;
+        return this.replace(/{(\d+)}/g, function (match, number) {
+            return typeof args[number] != 'undefined'
+                ? args[number]
+                : match
+                ;
+        });
+    };
+}
+
 
 // Map of steam pages
 // Key: href of steam page
@@ -13,13 +28,33 @@ var steamTopTags = {};
 var steamTopTagsArray = [];
 var numPagesLoading = 0;
 
+var $checkboxIncludeOnlyTopTags = null;
+
+function includeOnlyTopTags() {
+    return $checkboxIncludeOnlyTopTags.is(":checked");
+}
+
 function makeHtmlLink(href, text, new_tab = true) {
-    var target = new_tab ? "_blank" : "_self";
-    return '<a href="' + href + '" target="' + target + '">' + text + '</a>'
+    let target = new_tab ? "_blank" : "_self";
+    return '<a href="{0}" target="{2}">{1}</a>'.format(href, text, target);
+}
+
+function makeSpanWithColor(text, class_color) {
+    return '<span class="{1}">{0}</span>'.format(text, class_color);
+}
+
+function makeSpanSuccess(text) {
+    return makeSpanWithColor(text, 'text-success');
+}
+
+function isSteamTagNrRelevant(nr) {
+    // From https://partner.steamgames.com/doc/store/tags#5
+    // Only the first 15 are relevant
+    return nr <= 15;
 }
 
 function getSteamLinksFromLocalStorage() {
-    var value = localStorage.getItem("steamLinks");
+    let value = localStorage.getItem("steamLinks");
     return value === null ? "" : value;
 }
 function setSteamLinkInLocalStorage(steamLinks) {
@@ -31,25 +66,43 @@ function templateFillTags() {
         console.warn("templateFillTags empty object");
     }
 
-    var dataForTable = [];
-    var id = 1;
+    let dataForTable = [];
+    let id = 1;
     for (const href in steamPages) {
         if (!steamPages.hasOwnProperty(href)) {
             continue;
         }
 
         let pageData = steamPages[href];
+
+        // Fill steam tags
+        let tagData = "";
+        for (let tagIndex = 0; tagIndex < pageData.tags.length; tagIndex++) {
+            let tagName = pageData.tags[tagIndex];
+            if (tagIndex < pageData.tags.length - 1) {
+                tagName += ", ";
+            }
+
+            if (isSteamTagNrRelevant(tagIndex)) {
+                tagName = makeSpanSuccess(tagName);
+            }
+            tagData += tagName;
+        }
+
         dataForTable.push({
             id: id,
             game: makeHtmlLink(href, pageData.name),
-            tags: pageData.tags.join(", ")
+            tags: tagData
         });
         id++;
     }
 
+    $("#table-tags").bootstrapTable('destroy');
     $("#table-tags").bootstrapTable({
         search: true,
         pagination: true,
+        showToggle: true,
+
         columns: [{
             field: 'game',
             title: 'Game',
@@ -62,7 +115,10 @@ function templateFillTags() {
     })
 }
 
-function templateFillTopTags() {
+function fillSteamTopTags() {
+    steamTopTags = {};
+    steamTopTagsArray = [];
+
     // Initial fill our steamTopTags
     for (const href in steamPages) {
         if (!steamPages.hasOwnProperty(href)) {
@@ -70,8 +126,13 @@ function templateFillTopTags() {
         }
 
         let pageData = steamPages[href];
-        for (var i = 0; i < pageData.tags.length; i++) {
-            var tagName = pageData.tags[i];
+        for (let tagIndex = 0; tagIndex < pageData.tags.length; tagIndex++) {
+            let tagName = pageData.tags[tagIndex];
+
+            // Ignore tag as it is not int top 15
+            if (includeOnlyTopTags() && !isSteamTagNrRelevant(tagIndex)) {
+                continue;
+            }
 
             if (tagName in steamTopTags) {
                 // exists
@@ -101,15 +162,19 @@ function templateFillTopTags() {
     steamTopTagsArray.sort(function (left, right) {
         return left.frequency < right.frequency;
     });
+}
+
+function templateFillTopTags() {
+    fillSteamTopTags();
 
     // Fill data for our table
-    var dataForTable = [];
-    for (var i = 0; i < steamTopTagsArray.length; i++) {
-        var tagsData = steamTopTagsArray[i];
+    let dataForTable = [];
+    for (let i = 0; i < steamTopTagsArray.length; i++) {
+        let tagsData = steamTopTagsArray[i];
 
         // Parse games
-        var games_present = "";
-        var gamesHrefsIndex = 0;
+        let games_present = "";
+        let gamesHrefsIndex = 0;
         tagsData.games_hrefs.forEach(function (gameHref) {
             if (gameHref in steamPages) {
                 games_present += makeHtmlLink(gameHref, steamPages[gameHref].name);
@@ -120,22 +185,30 @@ function templateFillTopTags() {
             gamesHrefsIndex++;
         });
 
+        let id = i + 1;
         dataForTable.push({
-            id: i + 1,
+            id: id,
+            rank: id,
             tag: tagsData.tag,
             frequency: tagsData.frequency,
             games: games_present,
         });
     }
 
+    $("#table-top-tags").bootstrapTable('destroy');
     $("#table-top-tags").bootstrapTable({
         search: true,
         pagination: true,
+        showToggle: true,
 
         // Initial sorting order
         sortName: "frequency",
         sortOrder: "desc",
         columns: [{
+            field: 'rank',
+            title: 'Rank',
+            sortable: true
+        }, {
             field: 'frequency',
             title: 'Frequency',
             sortable: true
@@ -155,6 +228,9 @@ function finishedAllQueries() {
     console.info("finishedAllQueries: ", steamPages);
     templateFillTags();
     templateFillTopTags();
+
+    // Enable checkbox
+    $checkboxIncludeOnlyTopTags.prop("disabled", false);
 }
 
 function getTagsFromHtmlPage(htmlData) {
@@ -163,10 +239,10 @@ function getTagsFromHtmlPage(htmlData) {
     }
 
     // Get all tags of page
-    var tag_elements = htmlData.querySelectorAll(".app_tag");
-    var tag_strings = [];
-    for (var i = 0; i < tag_elements.length; i++) {
-        var element = tag_elements[i]
+    let tag_elements = htmlData.querySelectorAll(".app_tag");
+    let tag_strings = [];
+    for (let i = 0; i < tag_elements.length; i++) {
+        let element = tag_elements[i]
 
         // Don't add plus button
         if (!$(element).hasClass("add_button")) {
@@ -180,7 +256,7 @@ function getAppNameFromHtmlPage(htmlData) {
     if (htmlData === null) {
         return "CAN'T PARSE";
     }
-    var $title = $(htmlData).find(".apphub_AppName");
+    let $title = $(htmlData).find(".apphub_AppName");
     if ($title !== null) {
         return $title.first().text();
     }
@@ -204,8 +280,8 @@ function downloadInfoForSteamPage(page) {
             }
 
             // Fill info about page
-            var parser = new DOMParser();
-            var pageData = {
+            let parser = new DOMParser();
+            let pageData = {
                 htmlData: parser.parseFromString(rawStringData, "text/html"),
                 href: page
             };
@@ -242,22 +318,31 @@ function clear() {
 }
 
 function readyFn(jQuery) {
-    var $steam_pages = $("#steam-pages");
+    // Handle checkboxes
+    $checkboxIncludeOnlyTopTags = $("#checkboxIncludeOnlyTopTags");
+    $checkboxIncludeOnlyTopTags.change(function() {
+        templateFillTopTags();
+    });
+
+    let $steam_pages = $("#steam-pages");
 
     // Recover from local storage if any
     $steam_pages.val(getSteamLinksFromLocalStorage());
 
     $(document).on('click', '#btn-query-tags', function () {
+        // Disable checkbox for now
+        $checkboxIncludeOnlyTopTags.prop("disabled", true);
+
         clear();
-        var steamLinksRaw = $steam_pages.val().trim();
+        let steamLinksRaw = $steam_pages.val().trim();
         setSteamLinkInLocalStorage(steamLinksRaw);
 
-        var steamLinksArray = steamLinksRaw.split(/\r?\n/);
+        let steamLinksArray = steamLinksRaw.split(/\r?\n/);
 
         // Clean whitespace
-        var alreadySeenMap = {};
-        for (var i = 0; i < steamLinksArray.length; i++) {
-            var page = steamLinksArray[i].trim();
+        let alreadySeenMap = {};
+        for (let i = 0; i < steamLinksArray.length; i++) {
+            let page = steamLinksArray[i].trim();
 
             // Already processed
             if (page in alreadySeenMap) {
