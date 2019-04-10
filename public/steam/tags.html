@@ -1,0 +1,73 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <title>Steam tags Query & Top</title>
+
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/fontawesome-all.css">
+    <link rel="stylesheet" href="../css/bootstrap-table.min.css">
+    <link rel="stylesheet" href="tags.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="index.html">Homepage</a></li>
+            </ol>
+        </nav>
+
+        <h1>Steam Tags</h1>
+
+        <form onsubmit="event.preventDefault();">
+            <div class="form-group">
+                <label for="steam-pages">Steam Pages</label>
+                <textarea class="form-control" id="steam-pages" rows="10"></textarea>
+            </div>
+            <button id="btn-query-tags" class="btn btn-primary btn-lg">Query tags</button>
+        </form>
+
+        <hr>
+
+        <h2>Results</h2>
+        <hr>
+
+        <div class="container" id="tags-root">
+            <h3>Tags</h3>
+            <table id="table-tags"></table>
+        </div>
+
+        <hr>
+
+        <div class="container" id="top-tags-root">
+            <h3>Top Tags</h3>
+            <table id="table-top-tags"></table>
+        </div>
+
+    </div>
+
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script type="text/javascript" src="../js/jquery-3.3.1.min.js"></script>
+    <!-- This include popper -->
+    <script type="text/javascript" src="../js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="../js/bootstrap-table.min.js"></script>
+
+    <script type="text/javascript" src="tags.js"></script>
+
+    <!-- Footer -->
+    <footer class="font-small blue fixed-bottom">
+        <div class="footer-copyright text-center py-3 ">Made with 💖 by
+            <a class="" href="https://store.steampowered.com/app/790360/WarriOrb/" target="_blank">WarriOrb</a>
+            (wishlist us)
+        </div>
+    </footer>
+</body>
+
+
+</html>
