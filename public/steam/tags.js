@@ -30,14 +30,30 @@ var numPagesLoading = 0;
 
 var $checkboxIncludeOnlyTopTags = null;
 
+function setCookie(c_name, value, exdays = -1) {
+    var exdate = new Date();
+    exdate.setDate(exdate.getDate() + exdays);
+    var c_value = escape(value) + ((exdays == null) ? "" : "; expires=" + exdate.toUTCString());
+    document.cookie = c_name + "=" + c_value;
+}
+
+
 function includeOnlyTopTags() {
     return $checkboxIncludeOnlyTopTags.is(":checked");
 }
 
-function makeHtmlLink(href, text, new_tab = true) {
+function makeHtmlLink(href, text = null, classes = "", new_tab = true) {
+    if (text === null) {
+        text = href;
+    }
     let target = new_tab ? "_blank" : "_self";
-    return '<a href="{0}" target="{2}">{1}</a>'.format(href, text, target);
+    return '<a href="{0}" target="{2}" class="{3}">{1}</a>'.format(href, text, target, classes);
 }
+
+function makeHtmlLinkAlert(href, text = null, new_tab = true) {
+    return makeHtmlLink(href, text, "alert-link", new_tab);
+}
+
 
 function makeSpanWithColor(text, class_color) {
     return '<span class="{1}">{0}</span>'.format(text, class_color);
@@ -47,10 +63,23 @@ function makeSpanSuccess(text) {
     return makeSpanWithColor(text, 'text-success');
 }
 
+function setSteamCookies() {
+    setCookie("birthtime", '283993201');
+    setCookie("mature_content", '1');
+}
+
 function isSteamTagNrRelevant(nr) {
     // From https://partner.steamgames.com/doc/store/tags#5
     // Only the first 15 are relevant
     return nr <= 15;
+}
+
+function showLoadingWidget() {
+    $("#loading-widget").fadeIn();
+}
+
+function hideLoadingWidget() {
+    $("#loading-widget").fadeOut();
 }
 
 function getSteamLinksFromLocalStorage() {
@@ -59,6 +88,32 @@ function getSteamLinksFromLocalStorage() {
 }
 function setSteamLinkInLocalStorage(steamLinks) {
     localStorage.setItem("steamLinks", steamLinks);
+}
+
+function clearAlerts() {
+    $("#alerts-container").empty();
+}
+
+function addAlertBox(text, css_class) {
+    $("#alerts-container").append('<div class="alert {0}" role="alert">{1}</div>'.format(css_class, text));
+}
+
+function addAlertWarningBox(text) {
+    addAlertBox(text, "alert-warning");
+}
+
+function addAlertErrorBox(text) {
+    addAlertBox(text, "alert-danger");
+}
+
+function logWarning(message) {
+    console.warn(message);
+    addAlertWarningBox(message);
+}
+
+function logError(message) {
+    console.error(message);
+    addAlertErrorBox(message);
 }
 
 function templateFillTags() {
@@ -152,16 +207,23 @@ function fillSteamTopTags() {
     // Convert to array so that we can sort
     steamTopTagsArray = Object.keys(steamTopTags).map(function (tag) {
         return {
+            rank: 0,
             tag: tag,
             frequency: steamTopTags[tag]['frequency'],
             games_hrefs: steamTopTags[tag]['games_hrefs']
         };
     });
 
+
     // Sort in ascending order
     steamTopTagsArray.sort(function (left, right) {
-        return left.frequency < right.frequency;
+        return -1 * (left.frequency - right.frequency);
     });
+
+    // Set correct ranks
+    for (let i = 0; i < steamTopTagsArray.length; i++) {
+        steamTopTagsArray[i].rank = i + 1;
+    }
 }
 
 function templateFillTopTags() {
@@ -188,7 +250,7 @@ function templateFillTopTags() {
         let id = i + 1;
         dataForTable.push({
             id: id,
-            rank: id,
+            rank: tagsData.rank,
             tag: tagsData.tag,
             frequency: tagsData.frequency,
             games: games_present,
@@ -206,7 +268,7 @@ function templateFillTopTags() {
         sortOrder: "desc",
         columns: [{
             field: 'rank',
-            title: 'Rank',
+            title: '#',
             sortable: true
         }, {
             field: 'frequency',
@@ -224,6 +286,14 @@ function templateFillTopTags() {
     });
 }
 
+function finishedQuery() {
+    // Are we done yet?
+    numPagesLoading--;
+    if (numPagesLoading == 0) {
+        finishedAllQueries();
+    }
+}
+
 function finishedAllQueries() {
     console.info("finishedAllQueries: ", steamPages);
     templateFillTags();
@@ -231,6 +301,7 @@ function finishedAllQueries() {
 
     // Enable checkbox
     $checkboxIncludeOnlyTopTags.prop("disabled", false);
+    hideLoadingWidget();
 }
 
 function getTagsFromHtmlPage(htmlData) {
@@ -264,6 +335,10 @@ function getAppNameFromHtmlPage(htmlData) {
     return "UNKNOWN"
 }
 
+function isAgeCheckPage(htmlData) {
+    return htmlData.querySelector(".agegate_birthday_desc") !== null;
+}
+
 function downloadInfoForSteamPage(page) {
     console.log("downloadInfoForSteamPage: " + page);
 
@@ -273,9 +348,15 @@ function downloadInfoForSteamPage(page) {
         // From: https://gist.github.com/jimmywarting/ac1be6ea0297c16c477e17f8fbe51347
         url: 'https://cors-anywhere.herokuapp.com/' + page,
         type: 'GET',
+
+        // xhrFields: {
+        //     withCredentials: true
+        // },
+        crossDomain: true,
+
         success: function (rawStringData, status, xhr) {
             if (page in steamPages) {
-                console.warn("Page already exists inside our cache: " + page);
+                logWarning("Page = {0}, already exists inside our cache. Your input contains double values".format(makeHtmlLinkAlert(page)));
                 return;
             }
 
@@ -285,24 +366,28 @@ function downloadInfoForSteamPage(page) {
                 htmlData: parser.parseFromString(rawStringData, "text/html"),
                 href: page
             };
-            pageData['tags'] = getTagsFromHtmlPage(pageData.htmlData);
-            pageData['name'] = getAppNameFromHtmlPage(pageData.htmlData)
 
-            // Parse tags
-            if (pageData.tags.length != 0) {
-                steamPages[page] = pageData;
-                console.info("Found tags: " + pageData.tags);
+            if (isAgeCheckPage(pageData.htmlData)) {
+                logWarning("Page {0} redirected to age check page. Ignoring. TODO 🤷".format(makeHtmlLinkAlert(page)));
             } else {
-                console.warn("Can't get tags for page: " + page);
-            }
-            numPagesLoading--;
+                // Normal page
+                pageData['tags'] = getTagsFromHtmlPage(pageData.htmlData);
+                pageData['name'] = getAppNameFromHtmlPage(pageData.htmlData)
 
-            if (numPagesLoading == 0) {
-                finishedAllQueries();
+                // Parse tags
+                if (pageData.tags.length != 0) {
+                    steamPages[page] = pageData;
+                    console.info("Found tags ({0}): {1}".format(pageData.name, pageData.tags));
+                } else {
+                    logWarning("Can't get tags for page = {0}. Does it even have tags?".format(makeHtmlLinkAlert(page)));
+                }
             }
+
+            finishedQuery();
         },
         error: function () {
-            console.error("Can't download page for: " + page);
+            finishedQuery();
+            logError("Can't download page = {0}".format(makeHtmlLinkAlert(page)));
         }
     });
 }
@@ -310,6 +395,7 @@ function downloadInfoForSteamPage(page) {
 function clear() {
     $("#table-tags").bootstrapTable('destroy');
     $("#table-top-tags").bootstrapTable('destroy');
+    clearAlerts();
 
     steamPages = {};
     steamTopTags = {};
@@ -318,9 +404,12 @@ function clear() {
 }
 
 function readyFn(jQuery) {
+    hideLoadingWidget();
+    setSteamCookies();
+
     // Handle checkboxes
     $checkboxIncludeOnlyTopTags = $("#checkboxIncludeOnlyTopTags");
-    $checkboxIncludeOnlyTopTags.change(function() {
+    $checkboxIncludeOnlyTopTags.change(function () {
         templateFillTopTags();
     });
 
@@ -332,6 +421,7 @@ function readyFn(jQuery) {
     $(document).on('click', '#btn-query-tags', function () {
         // Disable checkbox for now
         $checkboxIncludeOnlyTopTags.prop("disabled", true);
+        showLoadingWidget();
 
         clear();
         let steamLinksRaw = $steam_pages.val().trim();

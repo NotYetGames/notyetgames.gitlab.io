@@ -24,6 +24,10 @@
             </ol>
         </nav>
 
+        <div class="alert alert-info" role="alert">
+            If page breaks most likely you need to disable your ad blocker 😢
+        </div>
+
         <h1>Steam Tags</h1>
 
         <form onsubmit="event.preventDefault();">
@@ -33,15 +37,26 @@
             </div>
             <button id="btn-query-tags" class="btn btn-primary btn-lg">Query tags</button>
         </form>
+        <div class="clearfix">
+            <div id="loading-widget" class="spinner-border float-right text-info" role="status">
+              <span class="sr-only">Loading...</span>
+            </div>
+          </div>
 
         <hr>
 
         <h2>Results</h2>
         <hr>
 
+        <div class="container" id="alerts-container">
+
+        </div>
+
         <div class="container" id="tags-root">
             <h3>Tags</h3>
-            <span class="badge badge-info">The first 15 tags are highlighted in green. Because they are the relevant ones.</span> <a href="https://partner.steamgames.com/doc/store/tags#5" target="_blank">(See steam docs)</a>
+            <div class="alert alert-info" role="alert">
+                The first 15 tags are highlighted in green. Because they are the relevant ones. <a href="https://partner.steamgames.com/doc/store/tags#5" target="_blank">(See steam docs)</a>
+            </div>
             <table id="table-tags"></table>
         </div>
 
@@ -77,7 +92,6 @@
     <!-- This include popper -->
     <script type="text/javascript" src="../js/bootstrap.bundle.min.js"></script>
     <script type="text/javascript" src="../js/bootstrap-table.min.js"></script>
-
     <script type="text/javascript" src="tags.js"></script>
 
 </body>
