@@ -339,20 +339,25 @@ function isAgeCheckPage(htmlData) {
     return htmlData.querySelector(".agegate_birthday_desc") !== null;
 }
 
-function downloadInfoForSteamPage(page) {
+
+//
+
+function downloadInfoForSteamPage(page, retry_with_backup = false) {
     console.log("downloadInfoForSteamPage: " + page);
 
-    numPagesLoading++;
-    $.ajax({
-        // Fight CORS
-        // From: https://gist.github.com/jimmywarting/ac1be6ea0297c16c477e17f8fbe51347
-        url: 'https://cors-anywhere.herokuapp.com/' + page,
-        type: 'GET',
+    if (!retry_with_backup) {
+        numPagesLoading++;
+    }
 
-        // xhrFields: {
-        //     withCredentials: true
-        // },
-        crossDomain: true,
+    // Fight CORS
+    // From: https://gist.github.com/jimmywarting/ac1be6ea0297c16c477e17f8fbe51347
+    let url = retry_with_backup ?
+        "https://notyet.eu/get_steam_page.php?page=" + page :
+        "https://cors-anywhere.herokuapp.com/" + page
+
+    $.ajax({
+        url: url,
+        type: 'GET',
 
         success: function (rawStringData, status, xhr) {
             if (page in steamPages) {
@@ -367,9 +372,23 @@ function downloadInfoForSteamPage(page) {
                 href: page
             };
 
-            if (isAgeCheckPage(pageData.htmlData)) {
-                logWarning("Page {0} redirected to age check page. Ignoring. TODO 🤷".format(makeHtmlLinkAlert(page)));
-            } else {
+            let isAgePage = isAgeCheckPage(pageData.htmlData);
+
+            // Retry again
+            if (!retry_with_backup && isAgePage) {
+                // Retry again
+                console.info("Retrying to get page = {0} because it is age verified".format(page));
+                downloadInfoForSteamPage(page, true);
+                return;
+            }
+
+            // Is retrying again but still nope :(
+            if (retry_with_backup && isAgePage) {
+                logWarning("Page {0} redirected to age check page. Ignoring. Can't retrieve it".format(makeHtmlLinkAlert(page)));
+            }
+
+            if (!isAgePage)
+            {
                 // Normal page
                 pageData['tags'] = getTagsFromHtmlPage(pageData.htmlData);
                 pageData['name'] = getAppNameFromHtmlPage(pageData.htmlData)
