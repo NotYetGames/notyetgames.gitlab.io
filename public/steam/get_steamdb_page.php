@@ -42,14 +42,14 @@ if ($appid !== null)
     if ($appid <= 0)
         exit(sprintf("ERROR: appid = %d is not valid", $appid));
 
-    $page = sprintf("https://store.steampowered.com/app/%d/", $appid);
+    $page = sprintf("https://steamdb.info/app/%d/graphs/", $appid);
 }
 
 // Remove any get arguments
 $page = get_url_clean($page);
 
 // Does not match our prefix :()
-if (!has_prefix($page, "https://store.steampowered.com/app/"))
+if (!has_prefix($page, "https://steamdb.info/app/"))
     exit(sprintf("ERROR: page = %s is not valid", $page));
 
 
@@ -60,7 +60,7 @@ $ch = curl_init();
 if ($ch === false)
     exit("Can't init curl");
 
-curl_setopt($ch, CURLOPT_COOKIE, "birthtime=28801; mature_content=1; path=/; domain=store.steampowered.com");
+curl_setopt($ch, CURLOPT_COOKIE, "path=/; domain=steamdb.info");
 curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 // curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 // curl_setopt($ch, CURLOPT_ENCODING,  '');

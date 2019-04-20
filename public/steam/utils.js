@@ -13,6 +13,18 @@ if (!String.prototype.format) {
     };
 }
 
+if (!String.prototype.replaceAll) {
+    String.prototype.replaceAll = function(search, replacement) {
+        var target = this;
+        return target.replace(new RegExp(search, 'g'), replacement);
+    };
+}
+
+if (!Array.prototype.random) {
+    Array.prototype.random = function () {
+        return this[Math.floor((Math.random() * this.length))];
+    }
+}
 
 function arrayRemove(arr, value) {
     return arr.filter(function (ele) {
@@ -163,4 +175,61 @@ function getSteamAppNameFromHtmlPage(htmlData) {
 
 function isSteamAgeCheckPage(htmlData) {
     return htmlData.querySelector(".agegate_birthday_desc") !== null;
+}
+
+function getSteamEmptyPlayersData() {
+    return {
+        'online': {
+            'now': 0,
+            '24hPeak': 0,
+            '3MonthsPeak': 0
+        },
+        'playTime': {
+            'avgTotal': '',
+            'avg2Weeks': ''
+        },
+        'owners': ''
+    };
+}
+
+function getSteamDBPlayersDataFromHtmlPage(htmlData) {
+    let playersData = getSteamEmptyPlayersData();
+
+    const $htmlData = $(htmlData);
+    let $playersOnlineList = $htmlData.find("ul.steamspy-stats:nth-child(2)");
+
+    function getCleanText($element) {
+        return $element.text().replaceAll(",", "");
+    }
+
+    // Children
+    playersData['online'] = {
+        'now': getCleanText($playersOnlineList.find("li:nth-child(1) > strong:nth-child(1)")),
+        '24hPeak': getCleanText($playersOnlineList.find("li:nth-child(2) > strong:nth-child(1)")),
+        '3MonthsPeak': getCleanText($playersOnlineList.find("li:nth-child(3) > strong:nth-child(1)"))
+    };
+
+    // $playersOnlineList.children().each(function(index, li) {
+    //     if (index == 0) {
+    //         // right now
+
+    //     } else if (index == 1) {
+    //         // 24 hour peak
+
+    //     } else if (index == 2) {
+    //         // all time peak - 3 months ago
+
+    //     }
+    //     console.log(li);
+    // });
+
+    let $steamSpyEstimatorsList = $htmlData.find("ul.steamspy-stats:nth-child(4)");
+    // Children
+    playersData['owners'] = getCleanText($steamSpyEstimatorsList.find("li:nth-child(3) > strong:nth-child(1)"));
+    playersData['playTime'] = {
+        'avgTotal': $steamSpyEstimatorsList.find("li:nth-child(2) > strong:nth-child(2)").text(),
+        'avg2Weeks': $steamSpyEstimatorsList.find("li:nth-child(2) > strong:nth-child(1)").text()
+    };
+
+    return playersData;
 }

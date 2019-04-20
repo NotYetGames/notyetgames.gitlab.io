@@ -1,13 +1,32 @@
 "use strict";
 
-// Map of steam pages
-// Key: href of steam page
-// Value: {
-//      htmlData: HtmlDocument
-//      href: String
-//      name: String
-//      tags: Array
-// }
+
+/**
+ Map of steam pages
+ Key: href of steam page
+ Value: {
+    htmlData: HtmlDocument
+    href: String
+    name: String
+    appid: String
+    tags: Array
+
+    // After quering the steamdb
+    steamdbHtmlData: HtmlDocument,
+    steamdbPlayersData: {
+        online: {
+            now: Number,
+            24hPeak: Number,
+            3MonthsPeaks: Number
+        },
+        playTime: {
+            avgTotal: String,
+            avg2Weeks: String
+        },
+        owners: String Range
+    }
+ }
+*/
 var steamPagesMap = {};
 
 // Maps appid => href (steam page)
@@ -17,12 +36,14 @@ var appIdsArray = [];
 var steamTopTags = {};
 var steamTopTagsArray = [];
 var numSteamPagesLoading = 0;
+var numSteamDBPagesLoading = 0;
 
 // Jquery elements
 var $checkboxIncludeOnlyTopTags = null;
 var $tableTags = null;
 var $tableTopTags = null;
 var $tablePlayerCountsComparisonGroup = null;
+var $tablePlayersData = null;
 var $textAreaSteamPages = null;
 
 function includeOnlyTopTags() {
@@ -273,11 +294,174 @@ function templateFillPlayerCountsComparisonGroup() {
     });
 }
 
-function finishedSteamPageQuery() {
+function templateFillPlayersData() {
+
+    // Fill data for our table
+    let dataForTable = [];
+    for (const href in steamPagesMap) {
+        if (!steamPagesMap.hasOwnProperty(href)) {
+            continue;
+        }
+
+        let pageData = steamPagesMap[href];
+
+        let playersData = pageData['steamdbPlayersData'];
+        const ownersString = playersData['owners'];
+        const arrayMinMax = ownersString.split("..");
+        const ownersMin = arrayMinMax.length > 0 ? arrayMinMax[0].trim() : 0;
+        const ownersMax = arrayMinMax.length > 1 ? arrayMinMax[1].trim() : 0;
+
+        dataForTable.push({
+            game: makeHtmlLink("https://steamdb.info/app/{0}/graphs/".format(pageData.appid), pageData.name),
+            online_now: playersData['online']['now'],
+            online_24hPeak: playersData['online']['24hPeak'],
+            online_3MonthsPeak: playersData['online']['3MonthsPeak'],
+            owners_min: ownersMin,
+            owners_max: ownersMax,
+            playTime_avgTotal: playersData['playTime']['avgTotal'],
+            playTime_avg2Weeks: playersData['playTime']['avg2Weeks']
+        });
+    }
+
+    $tablePlayersData.bootstrapTable('destroy');
+    $tablePlayersData.bootstrapTable({
+        search: true,
+        pagination: true,
+        showToggle: true,
+
+        // sortName: "frequency",
+        // sortOrder: "desc",
+        columns: [
+            {
+                field: 'game',
+                title: 'Game',
+                sortable: true
+            },
+            {
+                field: 'online_now',
+                title: 'Online right now',
+                sortable: true
+            },
+            {
+                field: 'online_24hPeak',
+                title: 'Online 24h Peak',
+                sortable: true
+            },
+            {
+                field: 'online_3MonthsPeak',
+                title: 'Online 3 Month Peak',
+                sortable: true
+            },
+            {
+                field: 'owners_min',
+                title: 'Owners Min',
+                sortable: true
+            },
+            {
+                field: 'owners_max',
+                title: 'Owners Max',
+                sortable: true
+            },
+            // {
+            //     field: 'owners',
+            //     title: 'Owners Range Estimation',
+            //     sortable: true
+            // },
+            {
+                field: 'playTime_avgTotal',
+                title: 'AVG total playtime',
+                sortable: true
+            },
+            {
+                field: 'playTime_avg2Weeks',
+                title: 'AVG playtime 2 weeks ',
+                sortable: true
+            }
+        ],
+        data: dataForTable
+    });
+}
+
+function finishedAllSteamDBPageQueries() {
+    console.info("finishedAllSteamDBPageQueries", steamPagesMap);
+    templateFillPlayersData();
+}
+
+function finishedSteamDBPageQuery() {
     // Are we done yet?
-    numSteamPagesLoading--;
-    if (numSteamPagesLoading == 0) {
-        finishedAllSteamPageQueries();
+    numSteamDBPagesLoading--;
+    if (numSteamDBPagesLoading == 0) {
+        finishedAllSteamDBPageQueries();
+    }
+}
+
+function downloadSteamDBPage(steamPage, retry_num = 0) {
+    console.log("downloadSteamDBPage: " + steamPage);
+    const maxRetryNum = 10;
+
+    if (!(steamPage in steamPagesMap)) {
+        return;
+    }
+
+    const pageData = steamPagesMap[steamPage];
+    const appid = pageData["appid"];
+    const url = "https://notyet.eu/get_steamdb_page.php?appid={0}".format(appid);
+
+    // First time
+    if (retry_num == 0) {
+        numSteamDBPagesLoading++;
+    }
+
+    function canRetryThis() {
+        return retry_num < maxRetryNum;
+    }
+
+    function retryThis() {
+        setTimeout(function(){
+            downloadSteamDBPage(steamPage, retry_num + 1);
+        }, delaysArray.random());
+    }
+
+    const delaysArray = [500, 700, 1000, 1500, 2000, 2500, 3000];
+    $.ajax({
+        url: url,
+        type: 'GET',
+
+        success: function(rawStringData, status, xhr) {
+            if (rawStringData.includes("<title>429 Too Many Requests</title>") && canRetryThis()) {
+                retryThis();
+            } else {
+                // Success
+                let htmlData = stringToHtmlDOM(rawStringData);
+                steamPagesMap[steamPage]['steamdbHtmlData'] = htmlData;
+                let playersData = getSteamDBPlayersDataFromHtmlPage(htmlData);
+                // console.log(playersData);
+                steamPagesMap[steamPage]['steamdbPlayersData'] = playersData
+
+                finishedSteamDBPageQuery();
+            }
+        },
+        error: function(xhr, ajaxOptions, thrownError) {
+            // Retry recursively
+            if (canRetryThis()) {
+                retryThis();
+            } else {
+                // :(
+                finishedSteamDBPageQuery();
+                logError("Can't download page = {0}".format(makeHtmlLinkAlert(url)));
+            }
+        }
+    });
+}
+
+function startDownloadingAllSteamDBPages() {
+    for (const href in steamPagesMap) {
+        if (!steamPagesMap.hasOwnProperty(href)) {
+            continue;
+        }
+
+        // let pageData = steamPagesMap[href];
+        downloadSteamDBPage(href);
     }
 }
 
@@ -290,10 +474,21 @@ function finishedAllSteamPageQueries() {
     // Enable checkbox
     $checkboxIncludeOnlyTopTags.prop("disabled", false);
     hideLoadingWidget();
+
+    // Star steamdb downloads
+    startDownloadingAllSteamDBPages();
 }
 
-function downloadSteamPage(page, retry_with_backup = false) {
-    console.log("downloadSteamPage: " + page);
+function finishedSteamPageQuery() {
+    // Are we done yet?
+    numSteamPagesLoading--;
+    if (numSteamPagesLoading == 0) {
+        finishedAllSteamPageQueries();
+    }
+}
+
+function downloadSteamPage(steamPage, retry_with_backup = false) {
+    console.log("downloadSteamPage: " + steamPage);
 
     if (!retry_with_backup) {
         numSteamPagesLoading++;
@@ -302,20 +497,20 @@ function downloadSteamPage(page, retry_with_backup = false) {
     // Fight CORS
     // From: https://gist.github.com/jimmywarting/ac1be6ea0297c16c477e17f8fbe51347
     const url = retry_with_backup ?
-        "https://notyet.eu/get_steam_page.php?page=" + page :
-        "https://cors-anywhere.herokuapp.com/" + page
+        "https://notyet.eu/get_steam_page.php?page=" + steamPage :
+        "https://cors-anywhere.herokuapp.com/" + steamPage
 
     // Cache
-    const appid = getSteamAppIdFromURL(page);
+    const appid = getSteamAppIdFromURL(steamPage);
     appIdsArray.push(appid);
-    appIdsToHrefsMap[appid] = page;
+    appIdsToHrefsMap[appid] = steamPage;
 
     $.ajax({
         url: url,
         type: 'GET',
 
         success: function (rawStringData, status, xhr) {
-            if (page in steamPagesMap) {
+            if (steamPage in steamPagesMap) {
                 logWarning("Page = {0}, already exists inside our cache. Your input contains double values".format(makeHtmlLinkAlert(page)));
                 return;
             }
@@ -323,7 +518,7 @@ function downloadSteamPage(page, retry_with_backup = false) {
             // Fill info about page
             let pageData = {
                 htmlData: stringToHtmlDOM(rawStringData),
-                href: page
+                href: steamPage
             };
 
             const isAgePage = isSteamAgeCheckPage(pageData.htmlData);
@@ -331,14 +526,14 @@ function downloadSteamPage(page, retry_with_backup = false) {
             // Retry again
             if (!retry_with_backup && isAgePage) {
                 // Retry again
-                console.info("Retrying to get page = {0} because it is age verified".format(page));
-                downloadSteamPage(page, true);
+                console.info("Retrying to get page = {0} because it is age verified".format(steamPage));
+                downloadSteamPage(steamPage, true);
                 return;
             }
 
             // Is retrying again but still nope :(
             if (retry_with_backup && isAgePage) {
-                logWarning("Page {0} redirected to age check page. Ignoring. Can't retrieve it".format(makeHtmlLinkAlert(page)));
+                logWarning("Page {0} redirected to age check page. Ignoring. Can't retrieve it".format(makeHtmlLinkAlert(steamPage)));
             }
 
             if (!isAgePage) {
@@ -346,13 +541,14 @@ function downloadSteamPage(page, retry_with_backup = false) {
                 pageData['appid'] = appid;
                 pageData['tags'] = getSteamTagsFromHtmlPage(pageData.htmlData);
                 pageData['name'] = getSteamAppNameFromHtmlPage(pageData.htmlData)
+                pageData['steamdbPlayersData'] = getSteamEmptyPlayersData();
 
                 // Parse tags
                 if (pageData.tags.length != 0) {
-                    steamPagesMap[page] = pageData;
+                    steamPagesMap[steamPage] = pageData;
                     console.info("Found tags ({0}): {1}".format(pageData.name, pageData.tags));
                 } else {
-                    logWarning("Can't get tags for page = {0}. Does it even have tags?".format(makeHtmlLinkAlert(page)));
+                    logWarning("Can't get tags for page = {0}. Does it even have tags?".format(makeHtmlLinkAlert(steamPage)));
                 }
             }
 
@@ -362,15 +558,43 @@ function downloadSteamPage(page, retry_with_backup = false) {
             // We don't have this app id because there was an error
             arrayRemove(appIdsArray, appid);
             finishedSteamPageQuery();
-            logError("Can't download page = {0}".format(makeHtmlLinkAlert(page)));
+            logError("Can't download page = {0}".format(makeHtmlLinkAlert(steamPage)));
         }
     });
+}
+
+function startDownloadingAllSteamPages() {
+    // Disable checkbox for now
+    $checkboxIncludeOnlyTopTags.prop("disabled", true);
+    showLoadingWidget();
+
+    clear();
+    const steamLinksRaw = $textAreaSteamPages.val().trim();
+    setSteamLinkInLocalStorage(steamLinksRaw);
+
+    // Splint by new lines
+    const steamLinksArray = steamLinksRaw.split(/\r?\n/);
+
+    // Clean whitespace
+    let alreadySeenMap = {};
+    for (let i = 0; i < steamLinksArray.length; i++) {
+        const steamPage = steamLinksArray[i].trim();
+
+        // Already processed
+        if (steamPage in alreadySeenMap) {
+            continue;
+        }
+
+        alreadySeenMap[steamPage] = true;
+        downloadSteamPage(steamPage);
+    }
 }
 
 function clear() {
     $tableTags.bootstrapTable('destroy');
     $tableTopTags.bootstrapTable('destroy');
     $tablePlayerCountsComparisonGroup.bootstrapTable('destroy');
+    $tablePlayersData.bootstrapTable('destroy');
     clearAlerts();
 
     steamPagesMap = {};
@@ -378,6 +602,7 @@ function clear() {
     appIdsArray = [];
     steamTopTagsArray = [];
     numSteamPagesLoading = 0;
+    numSteamDBPagesLoading = 0;
 }
 
 function readyFn(jQuery) {
@@ -393,35 +618,13 @@ function readyFn(jQuery) {
     $tableTags = $("#table-tags");
     $tableTopTags = $("#table-top-tags");
     $tablePlayerCountsComparisonGroup = $("#table-player-counts-comparison-groups");
+    $tablePlayersData = $("#table-players-data");
 
     // Recover from local storage if any
     $textAreaSteamPages.val(getSteamLinksFromLocalStorage());
 
     $(document).on('click', '#btn-query-tags', function () {
-        // Disable checkbox for now
-        $checkboxIncludeOnlyTopTags.prop("disabled", true);
-        showLoadingWidget();
-
-        clear();
-        const steamLinksRaw = $textAreaSteamPages.val().trim();
-        setSteamLinkInLocalStorage(steamLinksRaw);
-
-        // Splint by new lines
-        const steamLinksArray = steamLinksRaw.split(/\r?\n/);
-
-        // Clean whitespace
-        let alreadySeenMap = {};
-        for (let i = 0; i < steamLinksArray.length; i++) {
-            const page = steamLinksArray[i].trim();
-
-            // Already processed
-            if (page in alreadySeenMap) {
-                continue;
-            }
-
-            alreadySeenMap[page] = true;
-            downloadSteamPage(page);
-        }
+        startDownloadingAllSteamPages();
     });
 }
 

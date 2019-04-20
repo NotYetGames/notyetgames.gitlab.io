@@ -37,14 +37,16 @@
         </div>
         <hr>
 
-        <h1>Steam Tags</h1>
+        <h1>Steam Pages</h1>
 
         <form onsubmit="event.preventDefault();">
             <div class="form-group">
-                <label for="steam-pages">Steam Pages:</label>
-                <textarea class="form-control" id="steam-pages" rows="10"></textarea>
+                <label for="steam-pages"></label>
+                <textarea placeholder="https://store.steampowered.com/app/367520/Hollow_Knight/
+https://store.steampowered.com/app/362680/Fran_Bow/
+https://store.steampowered.com/app/504230/Celeste/" class="form-control" id="steam-pages" rows="10"></textarea>
             </div>
-            <button id="btn-query-tags" class="btn btn-primary btn-lg">Query tags</button>
+            <button id="btn-query-tags" class="btn btn-primary btn-lg">Query tags/info</button>
         </form>
         <div class="clearfix">
             <div id="loading-widget" class="spinner-border float-right text-info" role="status">
@@ -73,6 +75,13 @@
                 </p>
             </div>
             <table id="table-player-counts-comparison-groups"></table>
+        </div>
+
+        <hr>
+
+        <div id="players-data-root">
+            <h3>Players Data</h3>
+            <table id="table-players-data"></table>
         </div>
 
         <hr>
