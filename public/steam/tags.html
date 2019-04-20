@@ -16,8 +16,7 @@
 </head>
 
 <body>
-
-    <div class="container">
+    <div class="container-bigger">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="index.html">Homepage</a></li>
@@ -28,11 +27,21 @@
             If page breaks most likely you need to disable your ad blocker 😢
         </div>
 
+        <p>
+        This tool was made to help us with our games visility and to improve wishlists per day, so if you find this tool useful
+        consider wishlisting us 😉.
+        </p>
+
+        <div class="row justify-content-center align-items-center">
+            <iframe src="https://store.steampowered.com/widget/790360/" frameborder="0" width="646" height="190"></iframe>
+        </div>
+        <hr>
+
         <h1>Steam Tags</h1>
 
         <form onsubmit="event.preventDefault();">
             <div class="form-group">
-                <label for="steam-pages">Steam Pages</label>
+                <label for="steam-pages">Steam Pages:</label>
                 <textarea class="form-control" id="steam-pages" rows="10"></textarea>
             </div>
             <button id="btn-query-tags" class="btn btn-primary btn-lg">Query tags</button>
@@ -48,12 +57,12 @@
         <h2>Results</h2>
         <hr>
 
-        <div class="container" id="alerts-container">
+        <div id="alerts-container">
 
         </div>
 
-        <div class="container" id="player-counts-root">
-            <h3>Player counts</h3>
+        <div id="player-counts-comparison-groups-root">
+            <h3>Player counts comparison group</h3>
             <div class="alert alert-info" role="alert">
                 Shows player counts by using the steamdb page <a href="https://steamdb.info/graph/" target="_blank">(See here)</a>
                 <p>
@@ -63,12 +72,12 @@
                     From Steam: <q>This product was recommended to users here based on similarity to the games they have played recently.</q>
                 </p>
             </div>
-            <table id="table-player-counts"></table>
+            <table id="table-player-counts-comparison-groups"></table>
         </div>
 
         <hr>
 
-        <div class="container" id="tags-root">
+        <div id="tags-root">
             <h3>Tags</h3>
             <div class="alert alert-info" role="alert">
                 The first 15 tags are highlighted in green. Because they are the relevant ones. <a href="https://partner.steamgames.com/doc/store/tags#5" target="_blank">(See steam docs)</a>
@@ -78,7 +87,7 @@
 
         <hr>
 
-        <div class="container" id="top-tags-root">
+        <div id="top-tags-root">
             <h3>Top Tags</h3>
             <form class="form-inline" onsubmit="event.preventDefault();">
                 <div class="form-check mb-2 mr-sm-2">
@@ -95,7 +104,7 @@
     <div class="row spacer"></div>
 
     <!-- Footer -->
-    <footer class="font-small blue fixed-bottom">
+    <footer class="font-small blue">
         <div class="footer-copyright text-center py-3 ">Made with 💖 by
             <a class="" href="https://store.steampowered.com/app/790360/WarriOrb/" target="_blank">WarriOrb</a>
             (wishlist us)
@@ -108,9 +117,8 @@
     <!-- This include popper -->
     <script type="text/javascript" src="../js/bootstrap.bundle.min.js"></script>
     <script type="text/javascript" src="../js/bootstrap-table.min.js"></script>
+    <script type="text/javascript" src="utils.js"></script>
     <script type="text/javascript" src="tags.js"></script>
 
 </body>
-
-
 </html>
