@@ -113,7 +113,8 @@ function logError(message) {
 function isSteamTagNrRelevant(nr) {
     // From https://partner.steamgames.com/doc/store/tags#5
     // Only the first 15 are relevant
-    return nr <= 15;
+    // 0 Index based
+    return nr < 15;
 }
 
 function getSteamLinksFromLocalStorage() {
