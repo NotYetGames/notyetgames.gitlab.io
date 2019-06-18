@@ -17,7 +17,7 @@
         online: {
             now: Number,
             24hPeak: Number,
-            3MonthsPeaks: Number
+            AllTimePeak: Number
         },
         playTime: {
             avgTotal: String,
@@ -304,6 +304,7 @@ function templateFillPlayersData() {
         }
 
         let pageData = steamPagesMap[href];
+        //console.log(pageData);
 
         let playersData = pageData['steamdbPlayersData'];
         const ownersString = playersData['owners'];
@@ -315,7 +316,7 @@ function templateFillPlayersData() {
             game: makeHtmlLink("https://steamdb.info/app/{0}/graphs/".format(pageData.appid), pageData.name),
             online_now: playersData['online']['now'],
             online_24hPeak: playersData['online']['24hPeak'],
-            online_3MonthsPeak: playersData['online']['3MonthsPeak'],
+            online_allTimePeak: playersData['online']['AllTimePeak'],
             owners_min: ownersMin,
             owners_max: ownersMax,
             playTime_avgTotal: playersData['playTime']['avgTotal'],
@@ -348,8 +349,8 @@ function templateFillPlayersData() {
                 sortable: true
             },
             {
-                field: 'online_3MonthsPeak',
-                title: 'Online 3 Month Peak',
+                field: 'online_allTimePeak',
+                title: 'Online All Month Peak',
                 sortable: true
             },
             {

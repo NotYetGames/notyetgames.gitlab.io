@@ -197,17 +197,17 @@ function getSteamDBPlayersDataFromHtmlPage(htmlData) {
     let playersData = getSteamEmptyPlayersData();
 
     const $htmlData = $(htmlData);
-    let $playersOnlineList = $htmlData.find("ul.steamspy-stats:nth-child(2)");
 
     function getCleanText($element) {
         return $element.text().replaceAll(",", "");
     }
 
+    // NOTE: paths are copied  using inspect element -> CSS selector copy
     // Children
     playersData['online'] = {
-        'now': getCleanText($playersOnlineList.find("li:nth-child(1) > strong:nth-child(1)")),
-        '24hPeak': getCleanText($playersOnlineList.find("li:nth-child(2) > strong:nth-child(1)")),
-        '3MonthsPeak': getCleanText($playersOnlineList.find("li:nth-child(3) > strong:nth-child(1)"))
+        'now': getCleanText($htmlData.find("ul.app-chart-numbers:nth-child(2) > li:nth-child(1) > strong:nth-child(1)")),
+        '24hPeak': getCleanText($htmlData.find("ul.app-chart-numbers:nth-child(2) > li:nth-child(2) > strong:nth-child(1)")),
+        'AllTimePeak': getCleanText($htmlData.find("ul.app-chart-numbers:nth-child(2) > li:nth-child(3) > strong:nth-child(1)"))
     };
 
     // $playersOnlineList.children().each(function(index, li) {
@@ -226,10 +226,10 @@ function getSteamDBPlayersDataFromHtmlPage(htmlData) {
 
     let $steamSpyEstimatorsList = $htmlData.find("ul.steamspy-stats:nth-child(4)");
     // Children
-    playersData['owners'] = getCleanText($steamSpyEstimatorsList.find("li:nth-child(3) > strong:nth-child(1)"));
+    playersData['owners'] = getCleanText($htmlData.find("ul.app-chart-numbers:nth-child(4) > li:nth-child(3) > strong:nth-child(1)"));
     playersData['playTime'] = {
-        'avgTotal': $steamSpyEstimatorsList.find("li:nth-child(2) > strong:nth-child(2)").text(),
-        'avg2Weeks': $steamSpyEstimatorsList.find("li:nth-child(2) > strong:nth-child(1)").text()
+        'avgTotal': $htmlData.find("ul.app-chart-numbers:nth-child(4) > li:nth-child(2) > strong:nth-child(2)").text(),
+        'avg2Weeks': $htmlData.find("ul.app-chart-numbers:nth-child(4) > li:nth-child(2) > strong:nth-child(1)").text()
     };
 
     return playersData;
