@@ -569,13 +569,16 @@ function startDownloadingAllSteamPages() {
     $checkboxIncludeOnlyTopTags.prop("disabled", true);
     showLoadingWidget();
 
+    // Clean up everything
     clear();
-    const steamLinksRaw = $textAreaSteamPages.val().trim();
-    setSteamLinkInLocalStorage(steamLinksRaw);
-    setSteamLinkToCurrentPageUrl(steamLinksRaw);
 
     // Splint by new lines
+    const steamLinksRaw = $textAreaSteamPages.val().trim();
     const steamLinksArray = steamLinksRaw.split(/\r?\n/);
+
+    // Cache results
+    setSteamLinksInLocalStorage(steamLinksRaw);
+    setSteamLinksArrayToCurrentPageUrl(steamLinksArray);
 
     // Clean whitespace
     let alreadySeenMap = {};

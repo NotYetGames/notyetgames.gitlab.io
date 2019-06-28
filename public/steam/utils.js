@@ -122,20 +122,66 @@ function getSteamLinksFromLocalStorage() {
     return value === null ? null : value;
 }
 
-function setSteamLinkInLocalStorage(steamLinks) {
+function setSteamLinksInLocalStorage(steamLinks) {
     localStorage.setItem("steamLinks", steamLinks);
 }
 
 function getSteamLinksFromCurrentPageUrl() {
     const params = new URLSearchParams(location.search);
-    return params.get("links");
+    const appIdsRaw = params.get("appIds");
+    if (appIdsRaw === null) {
+        return null;
+    }
+
+    const appIdsWithNamesArray = appIdsRaw.split(',');
+
+    // Rebuild steam links
+    let steamLinks = "";
+    for (let i = 0; i < appIdsWithNamesArray.length; i++) {
+        const data = appIdsWithNamesArray[i].split('/');
+        let appId = data.length >= 1 ? data[0] : "";
+        let name = data.length >= 2 ? data[1] : "";
+        console.log(data);
+        steamLinks += "https://store.steampowered.com/app/{0}/{1}\n".format(appId, name);
+    }
+    return steamLinks.length > 0 ? steamLinks : null;
 }
 
-function setSteamLinkToCurrentPageUrl(steamLinks) {
+function setSteamLinksArrayToCurrentPageUrl(steamLinksArray) {
+    const appIdsWithNamesArray = steamLinksArrayToAppIdsWithNamesArray(steamLinksArray);
     const params = new URLSearchParams(location.search);
-    params.set('links', steamLinks);
+    params.set('appIds', appIdsWithNamesArray.join(','));
     window.history.replaceState({}, '', `${location.pathname}?${params}`);
     // document.location.search = '?' + $.param({'links': steamLinks});
+}
+
+function steamLinksArrayToAppIdsArray(steamLinksArray) {
+    let appIdsArray = [];
+    for (let i = 0; i < steamLinksArray.length; i++) {
+        const steamPage = steamLinksArray[i].trim();
+        const appId = getSteamAppIdFromURL(steamPage);
+        if (appId !== null) {
+            appIdsArray.push(appId);
+        }
+    }
+
+    return appIdsArray;
+}
+
+function steamLinksArrayToAppIdsWithNamesArray(steamLinksArray) {
+    let appIdsWithNamesArray = [];
+    for (let i = 0; i < steamLinksArray.length; i++) {
+        const steamPage = steamLinksArray[i].trim();
+        const data = getSteamAppIdAndNameFromURL(steamPage);
+        if (data !== null) {
+            // Omit / if we don't have a name
+            let name_part = data["name"] === null ? "" : "/" + data["name"];
+            let entry = data["appId"] + name_part;
+            appIdsWithNamesArray.push(entry);
+        }
+    }
+
+    return appIdsWithNamesArray;
 }
 
 function getSteamAppIdFromURL(url) {
@@ -150,6 +196,30 @@ function getSteamAppIdFromURL(url) {
         // matches.forEach((match, groupIndex) => {
         // console.log(`Found match, group ${groupIndex}: ${match}`);
         // });
+    }
+
+    return null;
+}
+
+function getSteamAppIdAndNameFromURL(url) {
+    const regex = /.*store\.steampowered.com\/app\/(\d+)\/?([a-zA-Z_]*)/i;
+
+    let matches = null;
+    if ((matches = regex.exec(url)) !== null) {
+
+        let appId = null;
+        let name = null;
+
+        // Has appid
+        if (matches.length >= 1) {
+            appId = matches[1];
+        }
+        // Has name
+        if (matches.length >= 2) {
+            name = matches[2];
+        }
+
+        return {'appId': appId, 'name': name};
     }
 
     return null;
