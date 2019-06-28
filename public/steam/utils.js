@@ -119,11 +119,23 @@ function isSteamTagNrRelevant(nr) {
 
 function getSteamLinksFromLocalStorage() {
     let value = localStorage.getItem("steamLinks");
-    return value === null ? "" : value;
+    return value === null ? null : value;
 }
 
 function setSteamLinkInLocalStorage(steamLinks) {
     localStorage.setItem("steamLinks", steamLinks);
+}
+
+function getSteamLinksFromCurrentPageUrl() {
+    const params = new URLSearchParams(location.search);
+    return params.get("links");
+}
+
+function setSteamLinkToCurrentPageUrl(steamLinks) {
+    const params = new URLSearchParams(location.search);
+    params.set('links', steamLinks);
+    window.history.replaceState({}, '', `${location.pathname}?${params}`);
+    // document.location.search = '?' + $.param({'links': steamLinks});
 }
 
 function getSteamAppIdFromURL(url) {

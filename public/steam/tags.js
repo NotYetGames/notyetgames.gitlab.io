@@ -572,6 +572,7 @@ function startDownloadingAllSteamPages() {
     clear();
     const steamLinksRaw = $textAreaSteamPages.val().trim();
     setSteamLinkInLocalStorage(steamLinksRaw);
+    setSteamLinkToCurrentPageUrl(steamLinksRaw);
 
     // Splint by new lines
     const steamLinksArray = steamLinksRaw.split(/\r?\n/);
@@ -621,8 +622,18 @@ function readyFn(jQuery) {
     $tablePlayerCountsComparisonGroup = $("#table-player-counts-comparison-groups");
     $tablePlayersData = $("#table-players-data");
 
-    // Recover from local storage if any
-    $textAreaSteamPages.val(getSteamLinksFromLocalStorage());
+    // Recover links
+    // First try url
+    const urlLinks = getSteamLinksFromCurrentPageUrl();
+    if (urlLinks !== null)
+    {
+        $textAreaSteamPages.val(urlLinks);
+    }
+    else
+    {
+        // finally try local storage if any
+        $textAreaSteamPages.val(getSteamLinksFromLocalStorage());
+    }
 
     $(document).on('click', '#btn-query-tags', function () {
         startDownloadingAllSteamPages();
