@@ -1,6 +1,8 @@
 <?php
 // $start = microtime(true);
 
+const USER_AGENT = "Mozilla/6.0 (Windows NT 10.0; rv:36.0) Gecko/20100101 Firefox/67";
+
 // Set correct headers
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET');
@@ -62,10 +64,12 @@ if ($ch === false)
 
 curl_setopt($ch, CURLOPT_COOKIE, "path=/; domain=steamdb.info");
 curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-// curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-// curl_setopt($ch, CURLOPT_ENCODING,  '');
+curl_setopt($ch, CURLOPT_USERAGENT, USER_AGENT);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 curl_setopt($ch, CURLOPT_URL, $page);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+// curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+// curl_setopt($ch, CURLOPT_ENCODING,  '');
 
 $result = curl_exec($ch);
 curl_close($ch);
