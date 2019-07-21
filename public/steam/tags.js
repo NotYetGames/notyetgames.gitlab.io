@@ -1,5 +1,13 @@
 "use strict";
 
+//
+// Config
+//
+const URL_STEAM_DB = "https://notyet.eu/get_steamdb_page.php?appid=";
+
+const URL_STEAM_PAGE = "https://notyet.eu/get_steam_page.php?page=";
+const URL_STEAM_PAGE_THIRD_PARTY = "https://cors-anywhere.herokuapp.com/";
+
 
 /**
  Map of steam pages
@@ -406,7 +414,7 @@ function downloadSteamDBPage(steamPage, retry_num = 0) {
 
     const pageData = steamPagesMap[steamPage];
     const appid = pageData["appid"];
-    const url = "https://notyet.eu/get_steamdb_page.php?appid={0}".format(appid);
+    const url = URL_STEAM_DB + "{0}".format(appid);
 
     // First time
     if (retry_num == 0) {
@@ -497,9 +505,7 @@ function downloadSteamPage(steamPage, retry_with_backup = false) {
 
     // Fight CORS
     // From: https://gist.github.com/jimmywarting/ac1be6ea0297c16c477e17f8fbe51347
-    const url = retry_with_backup ?
-        "https://notyet.eu/get_steam_page.php?page=" + steamPage :
-        "https://cors-anywhere.herokuapp.com/" + steamPage
+    const url = retry_with_backup ? URL_STEAM_PAGE + steamPage : URL_STEAM_PAGE_THIRD_PARTY + steamPage
 
     // Cache
     const appid = getSteamAppIdFromURL(steamPage);
