@@ -441,7 +441,7 @@ function downloadSteamDBPage(steamPage, retry_num = 0) {
                 retryThis();
             } else {
                 // Success
-                let htmlData = stringToHtmlDOM(rawStringData);
+                let htmlData = stringToHtmlDOM(rawStringDadota);
                 steamPagesMap[steamPage]['steamdbHtmlData'] = htmlData;
                 let playersData = getSteamDBPlayersDataFromHtmlPage(htmlData);
                 // console.log(playersData);
@@ -505,7 +505,8 @@ function downloadSteamPage(steamPage, retry_with_backup = false) {
 
     // Fight CORS
     // From: https://gist.github.com/jimmywarting/ac1be6ea0297c16c477e17f8fbe51347
-    const url = retry_with_backup ? URL_STEAM_PAGE + steamPage : URL_STEAM_PAGE_THIRD_PARTY + steamPage
+    // const url = retry_with_backup ? URL_STEAM_PAGE + steamPage : URL_STEAM_PAGE_THIRD_PARTY + steamPage
+    const url = URL_STEAM_PAGE + steamPage;
 
     // Cache
     const appid = getSteamAppIdFromURL(steamPage);
