@@ -441,7 +441,7 @@ function downloadSteamDBPage(steamPage, retry_num = 0) {
                 retryThis();
             } else {
                 // Success
-                let htmlData = stringToHtmlDOM(rawStringDadota);
+                let htmlData = stringToHtmlDOM(rawStringData);
                 steamPagesMap[steamPage]['steamdbHtmlData'] = htmlData;
                 let playersData = getSteamDBPlayersDataFromHtmlPage(htmlData);
                 // console.log(playersData);
